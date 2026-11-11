@@ -1641,6 +1641,7 @@
     "pool_accounts_few": "{{count}} аккаунта",
     "pool_accounts_many": "{{count}} аккаунтов",
     "pool_accounts_other": "{{count}} аккаунта",
+    "pool_not_reporting": "Нет данных: {{count}}",
     "pool_of_total": "из {{total}}",
     "pool_stat_pool_empty": "Пул исчерпан",
     "pool_stat_first_empty": "Первый исчерпан",

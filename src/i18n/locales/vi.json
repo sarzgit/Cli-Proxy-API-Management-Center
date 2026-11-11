@@ -1587,6 +1587,7 @@
     "pool_section_label": "Dự báo hạn mức gộp",
     "pool_accounts_one": "{{count}} tài khoản",
     "pool_accounts_other": "{{count}} tài khoản",
+    "pool_not_reporting": "{{count}} chưa báo cáo",
     "pool_of_total": "trên {{total}}",
     "pool_stat_pool_empty": "Hết hạn mức gộp",
     "pool_stat_first_empty": "Tài khoản hết đầu tiên",

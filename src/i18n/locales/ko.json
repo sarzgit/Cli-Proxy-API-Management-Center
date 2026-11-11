@@ -1636,6 +1636,7 @@
     "pool_section_label": "통합 할당량 예측",
     "pool_accounts_one": "계정 {{count}}개",
     "pool_accounts_other": "계정 {{count}}개",
+    "pool_not_reporting": "보고하지 않는 계정 {{count}}개",
     "pool_of_total": "/ {{total}}",
     "pool_stat_pool_empty": "풀 소진",
     "pool_stat_first_empty": "첫 소진",

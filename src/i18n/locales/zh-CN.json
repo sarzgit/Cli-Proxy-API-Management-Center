@@ -1635,6 +1635,7 @@
     "pool_section_label": "额度池预测",
     "pool_accounts_one": "{{count}} 个账号",
     "pool_accounts_other": "{{count}} 个账号",
+    "pool_not_reporting": "{{count}} 个账号未报告",
     "pool_of_total": "/ {{total}}",
     "pool_stat_pool_empty": "池耗尽",
     "pool_stat_first_empty": "首个耗尽",

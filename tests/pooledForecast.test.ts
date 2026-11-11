@@ -238,15 +238,16 @@ describe('pool stats', () => {
     account('a', [sample(NOW - 3 * HOUR, 32, resetA), sample(NOW, 20, resetA)]),
     // 1%/h from 50, resets in 3 days.
     account('b', [sample(NOW - 3 * HOUR, 53, NOW + 3 * DAY), sample(NOW, 50, NOW + 3 * DAY)]),
-    // No samples: full and idle.
+    // No samples: unknown and excluded from the pool.
     account('c', []),
   ];
 
   test('headline numbers', () => {
     const forecast = forecastFor(accounts);
     expect(forecast.accountCount).toBe(3);
-    expect(forecast.totalPercent).toBe(300);
-    expect(forecast.remainingPercent).toBe(170);
+    expect(forecast.totalPercent).toBe(200);
+    expect(forecast.notReportingCount).toBe(1);
+    expect(forecast.remainingPercent).toBe(70);
     expect(forecast.burnPerHour).toBeCloseTo(5, 6);
   });
 
@@ -255,8 +256,8 @@ describe('pool stats', () => {
     expect(forecast.stats.firstEmptyAt).toBe(NOW + 5 * HOUR);
     // Account a is at 0 when it resets, so the reset restores a full 100.
     expect(forecast.stats.nextReset).toEqual({ t: resetA, restored: 100 });
-    // Account c never burns, so the pool never empties.
-    expect(forecast.stats.poolEmptyAt).toBeNull();
+    // Account a empties again after its reset; b empties after 50 hours.
+    expect(forecast.stats.poolEmptyAt).toBe(NOW + 50 * HOUR);
     expect(forecast.resetSteps[0]).toEqual({ t: resetA, restored: 100 });
   });
 
@@ -299,12 +300,12 @@ describe('pool stats', () => {
   test('crosshair reads recorded before now and projected after', () => {
     const forecast = forecastFor(accounts);
     expect(forecastValueAt(forecast, 'remaining', NOW - HOUR, NOW)).toEqual({
-      value: 175,
+      value: 75,
       projected: false,
     });
     const later = forecastValueAt(forecast, 'remaining', NOW + HOUR, NOW);
     expect(later?.projected).toBe(true);
-    expect(later?.value).toBeCloseTo(165, 6);
+    expect(later?.value).toBeCloseTo(65, 6);
   });
 });
 
@@ -427,5 +428,64 @@ describe('quotaHistoryApi', () => {
     get.mockRejectedValueOnce(Object.assign(new Error('boom'), { status: 500 }));
     await expect(quotaHistoryApi.fetch(0)).rejects.toThrow('boom');
     get.mockRestore();
+  });
+});
+
+describe('review regressions', () => {
+  test('unknown capacity cannot mask an exhausted reporting account', () => {
+    const forecast = forecastFor([account('empty', [sample(NOW, 0)]), account('unknown', [])]);
+    expect(forecast.totalPercent).toBe(100);
+    expect(forecast.remainingPercent).toBe(0);
+    expect(forecast.notReportingCount).toBe(1);
+    expect(forecast.stats.poolEmptyAt).toBe(NOW);
+  });
+
+  test('all unknown accounts yield no chart or stats', () => {
+    const forecast = forecastFor([
+      account('unknown', []),
+      account('future', [sample(NOW + HOUR, 100)]),
+    ]);
+    expect(forecast.notReportingCount).toBe(2);
+    expect(forecast.totalPercent).toBe(0);
+    expect(forecast.recorded).toEqual([]);
+    expect(forecast.projected).toEqual([]);
+    expect(forecast.stats.poolEmptyAt).toBeNull();
+    expect(forecast.stats.firstEmptyAt).toBeNull();
+    expect(forecast.stats.nextReset).toBeNull();
+  });
+
+  test('same-second drops count, while upward resets do not', () => {
+    expect(
+      burnRate(
+        [
+          { t: NOW - HOUR, v: 60 },
+          { t: NOW, v: 50 },
+          { t: NOW, v: 40 },
+          { t: NOW, v: 100 },
+        ],
+        NOW - HOUR,
+        NOW
+      )
+    ).toBeCloseTo(20, 6);
+    expect(
+      burnRate(
+        [
+          { t: NOW - HOUR, v: 60 },
+          { t: NOW - HOUR, v: 50 },
+          { t: NOW, v: 40 },
+        ],
+        NOW - HOUR,
+        NOW
+      )
+    ).toBeCloseTo(10, 6);
+  });
+
+  test('depletion exactly at a reset or endpoint is detected', () => {
+    const end = NOW + 2 * HOUR;
+    expect(projectAccount(10, 5, [], NOW, end).emptyAt).toBe(end);
+    const atReset = projectAccount(10, 5, [end], NOW, end + HOUR);
+    expect(atReset.emptyAt).toBe(end);
+    expect(valueAt(atReset.points, end, 'before')).toBe(0);
+    expect(valueAt(atReset.points, end, 'after')).toBe(100);
   });
 });

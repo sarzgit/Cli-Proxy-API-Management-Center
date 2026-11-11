@@ -326,48 +326,60 @@ function PooledForecastCard({
         <h2 className={styles.provider}>{label}</h2>
         <span className={styles.accounts}>
           {t('quota_management.pool_accounts', { count: forecast.accountCount })}
+          {forecast.notReportingCount > 0 && (
+            <>
+              {' · '}
+              {t('quota_management.pool_not_reporting', { count: forecast.notReportingCount })}
+            </>
+          )}
         </span>
       </header>
 
-      <div className={styles.summary}>
-        <p className={styles.total}>
-          <span className={styles.totalValue}>{formatPercent(forecast.remainingPercent)}</span>
-          <span className={styles.totalOf}>
-            {t('quota_management.pool_of_total', { total: formatPercent(forecast.totalPercent) })}
-          </span>
-        </p>
-        <dl className={styles.stats}>
-          {stats.map((stat) => (
-            <div key={stat.key} className={styles.stat}>
-              <dt>{stat.label}</dt>
-              <dd>{stat.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+      {forecast.totalPercent > 0 && (
+        <>
+          <div className={styles.summary}>
+            <p className={styles.total}>
+              <span className={styles.totalValue}>{formatPercent(forecast.remainingPercent)}</span>
+              <span className={styles.totalOf}>
+                {t('quota_management.pool_of_total', {
+                  total: formatPercent(forecast.totalPercent),
+                })}
+              </span>
+            </p>
+            <dl className={styles.stats}>
+              {stats.map((stat) => (
+                <div key={stat.key} className={styles.stat}>
+                  <dt>{stat.label}</dt>
+                  <dd>{stat.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
-      <PooledForecastChart
-        forecast={forecast}
-        view={view}
-        span={span}
-        nowMs={nowMs}
-        label={label}
-      />
+          <PooledForecastChart
+            forecast={forecast}
+            view={view}
+            span={span}
+            nowMs={nowMs}
+            label={label}
+          />
 
-      <footer className={styles.legend}>
-        <span className={styles.legendItem}>
-          <span className={styles.legendPool} aria-hidden="true" />
-          {t('quota_management.pool_legend_pool')}
-        </span>
-        <span className={styles.legendItem}>
-          <span className={styles.legendRecorded} aria-hidden="true" />
-          {t('quota_management.pool_legend_recorded')}
-        </span>
-        <span className={styles.legendItem}>
-          <span className={styles.legendProjected} aria-hidden="true" />
-          {t('quota_management.pool_legend_projected')}
-        </span>
-      </footer>
+          <footer className={styles.legend}>
+            <span className={styles.legendItem}>
+              <span className={styles.legendPool} aria-hidden="true" />
+              {t('quota_management.pool_legend_pool')}
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendRecorded} aria-hidden="true" />
+              {t('quota_management.pool_legend_recorded')}
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendProjected} aria-hidden="true" />
+              {t('quota_management.pool_legend_projected')}
+            </span>
+          </footer>
+        </>
+      )}
     </article>
   );
 }

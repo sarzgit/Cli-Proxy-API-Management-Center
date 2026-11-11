@@ -1636,6 +1636,7 @@
     "pool_section_label": "Ortak kota tahmini",
     "pool_accounts_one": "{{count}} hesap",
     "pool_accounts_other": "{{count}} hesap",
+    "pool_not_reporting": "{{count}} hesap bildirmiyor",
     "pool_of_total": "/ {{total}}",
     "pool_stat_pool_empty": "Havuz biter",
     "pool_stat_first_empty": "İlk biten",

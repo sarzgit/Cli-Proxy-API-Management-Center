@@ -1636,6 +1636,7 @@
     "pool_section_label": "Pooled quota forecast",
     "pool_accounts_one": "{{count}} account",
     "pool_accounts_other": "{{count}} accounts",
+    "pool_not_reporting": "{{count}} not reporting",
     "pool_of_total": "of {{total}}",
     "pool_stat_pool_empty": "Pool empty",
     "pool_stat_first_empty": "First empty",

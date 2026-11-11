@@ -29,8 +29,9 @@ describe('PooledForecastView static rendering', () => {
     expect(markup).toContain('6 accounts');
     expect(markup).toContain('of 600%');
     expect(markup).toContain('4 accounts');
-    expect(markup).toContain('of 400%');
-    expect(markup.indexOf('of 600%')).toBeLessThan(markup.indexOf('of 400%'));
+    expect(markup).toContain('1 not reporting');
+    expect(markup).toContain('of 300%');
+    expect(markup.indexOf('of 600%')).toBeLessThan(markup.indexOf('of 300%'));
     expect(markup).toContain('--pool-claude');
     expect(markup).toContain('--pool-codex');
   });
@@ -63,6 +64,19 @@ describe('PooledForecastView static rendering', () => {
     // Focusable chart with an accessible summary.
     expect(markup).toMatch(/tabindex="0" role="group" aria-label="Claude pool: \d+% of 600% left/);
     expect(markup).toMatch(/\d+\.\d%\/h/);
+  });
+
+  test('all unreported accounts show only their header', () => {
+    const history = normalizeQuotaHistory(buildPooledForecastFixture(NOW));
+    history.accounts = history.accounts
+      .filter((account) => !account.disabled)
+      .map((account) => ({ ...account, samples: [] }));
+    const markup = render(history);
+    expect(markup).toContain('6 not reporting');
+    expect(markup).toContain('4 not reporting');
+    expect(markup).not.toMatch(/<svg[^>]*height="300"/);
+    expect(markup).not.toContain('Pool empty');
+    expect(markup).not.toContain('of 0%');
   });
 
   test('renders nothing without enabled accounts', () => {

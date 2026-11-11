@@ -189,6 +189,7 @@ export function recordedAccountSeries(account: QuotaHistoryAccount, nowMs: numbe
 /**
  * Remaining dropped over [fromMs, toMs], ignoring upward moves (resets), as %/h
  * of the part of the window the series actually covers. Never negative.
+ * Downward steps (two samples sharing a timestamp) inside (fromMs, toMs] count.
  */
 export function burnRate(points: readonly SeriesPoint[], fromMs: number, toMs: number): number {
   if (points.length < 2) return 0;
@@ -199,7 +200,10 @@ export function burnRate(points: readonly SeriesPoint[], fromMs: number, toMs: n
   for (let i = 1; i < points.length; i += 1) {
     const a = points[i - 1];
     const b = points[i];
-    if (b.t === a.t) continue;
+    if (b.t === a.t) {
+      if (b.v < a.v && b.t > fromMs && b.t <= coveredTo) drop += a.v - b.v;
+      continue;
+    }
     const lo = Math.max(a.t, coveredFrom);
     const hi = Math.min(b.t, coveredTo);
     if (hi <= lo) continue;
@@ -234,15 +238,15 @@ export function projectAccount(
   let anchorValue = startValue;
 
   const runTo = (toMs: number): number => {
-    if (ratePerHour > 0 && anchorValue > EPS) {
-      const zeroAt = anchor + (anchorValue / ratePerHour) * HOUR_MS;
-      if (zeroAt < toMs) {
-        pushPoint(points, zeroAt, 0);
-        emptyAt ??= zeroAt;
-        return 0;
-      }
+    const value = anchorValue - (ratePerHour * (toMs - anchor)) / HOUR_MS;
+    // Inclusive: running out exactly at a reset or at the endpoint still counts.
+    if (ratePerHour > 0 && anchorValue > EPS && value <= EPS) {
+      const zeroAt = Math.min(anchor + (anchorValue / ratePerHour) * HOUR_MS, toMs);
+      pushPoint(points, zeroAt, 0);
+      emptyAt ??= zeroAt;
+      return 0;
     }
-    return Math.max(0, anchorValue - (ratePerHour * (toMs - anchor)) / HOUR_MS);
+    return Math.max(0, value);
   };
 
   resets
@@ -352,7 +356,11 @@ export interface PoolStats {
 }
 
 export interface ProviderForecast {
+  /** Enabled accounts, reporting or not. */
   accountCount: number;
+  /** Enabled accounts with no samples yet; left out of every number below. */
+  notReportingCount: number;
+  /** Reporting accounts × 100. */
   totalPercent: number;
   remainingPercent: number;
   /** Pooled %/h over the burn window (before the future-usage factor). */
@@ -381,20 +389,34 @@ const latestResetAt = (account: QuotaHistoryAccount, nowMs: number): number | nu
 };
 
 export function buildProviderForecast(input: ProviderForecastInput): ProviderForecast {
-  const { accounts, nowMs, burnWindowHours, futureUsage, rangeStartMs, rangeEndMs } = input;
+  const { nowMs, burnWindowHours, futureUsage, rangeStartMs, rangeEndMs } = input;
+  // An account with no samples has an unknown state: it is counted, never pooled.
+  const accounts = input.accounts.filter((account) =>
+    account.samples.some((sample) => sample.atMs <= nowMs)
+  );
+  const notReportingCount = input.accounts.length - accounts.length;
   const factor = FUTURE_USAGE_FACTOR[futureUsage];
   const burnWindowMs = burnWindowHours * HOUR_MS;
   const horizonMs = forecastHorizon(nowMs);
   const projectionEnd = Math.max(horizonMs, rangeEndMs);
 
-  // An account with no samples is a full, idle account with an unknown reset.
-  const recordedByAccount = accounts.map((account) => {
-    const points = recordedAccountSeries(account, nowMs);
-    return points.length > 0 ? points : [{ t: nowMs, v: FULL }];
-  });
-  const hasSamples = accounts.map((account) =>
-    account.samples.some((sample) => sample.atMs <= nowMs)
-  );
+  if (accounts.length === 0) {
+    return {
+      accountCount: input.accounts.length,
+      notReportingCount,
+      totalPercent: 0,
+      remainingPercent: 0,
+      burnPerHour: 0,
+      recorded: [],
+      projected: [],
+      resetSteps: [],
+      drainRecorded: [],
+      drainProjected: [],
+      stats: { poolEmptyAt: null, firstEmptyAt: null, nextReset: null, horizonMs },
+    };
+  }
+
+  const recordedByAccount = accounts.map((account) => recordedAccountSeries(account, nowMs));
 
   const accountBurn = recordedByAccount.map((points) =>
     burnRate(points, nowMs - burnWindowMs, nowMs)
@@ -412,10 +434,7 @@ export function buildProviderForecast(input: ProviderForecastInput): ProviderFor
   );
 
   /* recorded pool */
-  const earliest = Math.min(
-    ...recordedByAccount.filter((_, index) => hasSamples[index]).map((points) => points[0].t),
-    Infinity
-  );
+  const earliest = Math.min(...recordedByAccount.map((points) => points[0].t));
   const recordedFrom = Math.max(rangeStartMs, earliest);
   const recordedTo = Math.min(nowMs, rangeEndMs);
   const recordedTimes = [
@@ -481,7 +500,8 @@ export function buildProviderForecast(input: ProviderForecastInput): ProviderFor
   });
 
   return {
-    accountCount: accounts.length,
+    accountCount: input.accounts.length,
+    notReportingCount,
     totalPercent: accounts.length * FULL,
     remainingPercent: recordedByAccount.reduce(
       (sum, points) => sum + valueAt(points, nowMs, 'after'),
