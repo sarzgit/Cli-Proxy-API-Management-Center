@@ -72,6 +72,10 @@
   --muted-foreground: var(--text-secondary);
   --accent-bg: var(--bg-tertiary);
 
+  // Pooled quota forecast accents (one per provider; see PooledForecast).
+  --pool-claude: #c4561f;
+  --pool-codex: #2563eb;
+
   // Glass effect (blurred surfaces)
   --glass-blur: 12px;
   --glass-backdrop-filter: blur(var(--glass-blur));
@@ -160,6 +164,10 @@
   --muted-bg: var(--bg-tertiary);
   --muted-foreground: var(--text-secondary);
   --accent-bg: var(--bg-tertiary);
+
+  // Pooled quota forecast accents (one per provider; see PooledForecast).
+  --pool-claude: #c4561f;
+  --pool-codex: #2563eb;
 }
 
 // 深色主题（#191919）
@@ -231,6 +239,10 @@
   --muted-bg: var(--bg-tertiary);
   --muted-foreground: var(--text-secondary);
   --accent-bg: var(--bg-tertiary);
+
+  // Pooled quota forecast accents (one per provider; see PooledForecast).
+  --pool-claude: #e8834f;
+  --pool-codex: #5b9cf6;
 
   --glass-border: color-mix(in srgb, var(--border-color) 55%, transparent);
 

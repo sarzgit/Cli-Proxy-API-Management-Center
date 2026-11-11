@@ -26,6 +26,7 @@ import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
+import { PooledForecastSection } from './components/PooledForecast';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_PAGE_SIZE,
@@ -333,6 +334,9 @@ export function QuotaPage() {
         disableControls={disableControls}
         onRefreshAll={handleRefreshAll}
       />
+
+      {/* Hidden when the backend has no quota history endpoint. */}
+      <PooledForecastSection resolvedTheme={resolvedTheme} refreshKey={files} />
 
       <section className={styles.workbench}>
         {/* 提供商导航与搜索工具栏分层，避免不同控件争夺视觉焦点。 */}

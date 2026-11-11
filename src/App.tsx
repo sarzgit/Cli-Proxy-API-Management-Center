@@ -31,6 +31,15 @@ const devPreviewRoutes = import.meta.env.DEV
           return { Component: QuotaTierPreview };
         },
       },
+      {
+        path: '/__preview/quota-pool',
+        HydrateFallback: () => null,
+        lazy: async () => {
+          const { PooledForecastPreview } =
+            await import('@/features/quota/preview/PooledForecastPreview');
+          return { Component: PooledForecastPreview };
+        },
+      },
     ]
   : [];
 
